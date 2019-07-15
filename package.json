@@ -1,0 +1,11 @@
+{
+  "name": "react-file-uploader",
+  "private": true,
+  "workspace" : ["packages/*"],
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    
+  }
+}
