@@ -6,18 +6,20 @@ import Button from './Button';
 
 // change usecallback
 // https://velog.io/@baldongdong/React-hooks-useCallback
-// ({file, url, onProgress})...
 
-function fileUpload({ file, url, cb }) {
+function fileUpload({ file, url, onProgress, onSuccess }) {
   const data = new FormData();
   data.append('file', file);
   axios
     .post(url, data, {
       onUploadProgress: (ProgressEvent) => {
-        cb((ProgressEvent.loaded / ProgressEvent.total) * 100);
+        onProgress((ProgressEvent.loaded / ProgressEvent.total) * 100);
       },
     })
     .then((res) => {
+      if (res.statusText === 'OK') {
+        onSuccess();
+      }
       console.log(res.statusText);
     })
     .catch((e) => {
@@ -25,18 +27,58 @@ function fileUpload({ file, url, cb }) {
     });
 }
 
-const FileUploader = ({ text, url, cb }) => {
-  //   const [url, setUrl] = useState(url);
+function checkFileSize(file) {
+  debugger
+  return new Promise(function(resolve, reject) {
+    let limitSize = 2000000;
+    if (!file) {
+      reject(new Error('File not Exist'));
+    }
+    if (file.size > limitSize) {
+      reject(new Error('File Limited'));
+    } else {
+      resolve();
+    }
+  });
+}
+
+function checkMimeType({ file, types = [] }) {
+  return new Promise(function(resolve, reject) {
+    if (types.length === 0) {
+      resolve();
+    } else if (types.every((type) => file.type !== type)) {
+      reject(new Error('file not supported...'));
+    } else {
+      resolve();
+    }
+  });
+}
+
+const FileUploader = ({ text, url, onProgress, onSuccess }) => {
   const [file, setFile] = useState(null);
   const [loaded, setLoaded] = useState(0);
 
-  //   TODO : 파일사이즈 제한
-  //   TODO : 파일 확장자 제한
+  // 파일 선택시 input 값 정의 [a]
+  //   TODO : 파일사이즈 제한 [o]
+  //   TODO : 파일 확장자 제한 [o]
+  //   TODO : 여러개 파일 병렬 처리
+  // Progress 처리
+
   const inputChangeHandler = useCallback((e) => {
+    const { files } = e.target;
     console.log('inputChange()');
-    console.log(e.target.files[0]);
+    console.log(files[0]);
     setLoaded(0);
-    setFile(e.target.files[0]);
+    Promise.all([
+      checkMimeType(files[0]),
+      checkFileSize({ file: files[0], types: ['image/png', 'image/jpeg', 'image/gif'] })
+    ])
+      .then(() => {
+        setFile(files[0]);
+      })
+      .catch((e) => {
+        alert(e);
+      });
   }, []);
 
   const formSubmitHandler = useCallback(
@@ -46,13 +88,16 @@ const FileUploader = ({ text, url, cb }) => {
       fileUpload({
         file,
         url,
-        cb: (p) => {
+        onProgress: (p) => {
           setLoaded(p);
-          cb(p);
+          onProgress(p);
+        },
+        onSuccess: () => {
+          onSuccess();
         },
       });
     },
-    [cb, file, url]
+    [file, onProgress, onSuccess, url]
   );
 
   const Form = styled.form`
@@ -79,12 +124,19 @@ const FileUploader = ({ text, url, cb }) => {
 FileUploader.propTypes = {
   text: PropTypes.string,
   cb: PropTypes.func,
+  onProgress: PropTypes.func,
+  fileSize: PropTypes.string,
+  onSuccess: PropTypes.func,
   url: PropTypes.string.isRequired,
 };
 
 FileUploader.defaultProps = {
   text: '',
-  cb() {
+  fileSize: '',
+  onProgress() {
+    console.log('file...processing');
+  },
+  onSuccess() {
     console.log('file...done');
   },
 };

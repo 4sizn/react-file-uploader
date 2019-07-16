@@ -1,11 +1,13 @@
 {
   "name": "react-file-uploader",
   "private": true,
-  "workspace" : ["packages/*"],
+  "workspaces" : ["packages/*"],
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    
+    "start" : "yarn start-client & yarn start-server",
+    "start-client" : "yarn workspace client start",
+    "start-server" : "yarn workspace server start"
   }
 }

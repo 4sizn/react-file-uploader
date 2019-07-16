@@ -5,7 +5,7 @@ import './App.css';
 function App() {
   return (
     <div className="App">
-      <FileUploader text="demo" url="http://localhost:8000/upload" cb={console.log('callback')}></FileUploader>
+      <FileUploader text="demo" url="http://localhost:8000/upload"></FileUploader>
     </div>
   );
 }
