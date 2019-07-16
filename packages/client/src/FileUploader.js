@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import styled from 'styled-components';
@@ -20,15 +20,14 @@ function fileUpload({ file, url, onProgress, onSuccess }) {
       if (res.statusText === 'OK') {
         onSuccess();
       }
-      console.log(res.statusText);
     })
     .catch((e) => {
       console.warn(e);
     });
 }
 
-function checkFileSize(file) {
-  debugger
+function checkFileSize({ file }) {
+  debugger;
   return new Promise(function(resolve, reject) {
     let limitSize = 2000000;
     if (!file) {
@@ -55,38 +54,45 @@ function checkMimeType({ file, types = [] }) {
 }
 
 const FileUploader = ({ text, url, onProgress, onSuccess }) => {
-  const [file, setFile] = useState(null);
+  const [filez, setFile] = useState(null);
   const [loaded, setLoaded] = useState(0);
-
+  const fileInput = useRef(null);
   // 파일 선택시 input 값 정의 [a]
   //   TODO : 파일사이즈 제한 [o]
   //   TODO : 파일 확장자 제한 [o]
   //   TODO : 여러개 파일 병렬 처리
   // Progress 처리
 
-  const inputChangeHandler = useCallback((e) => {
-    const { files } = e.target;
-    console.log('inputChange()');
-    console.log(files[0]);
-    setLoaded(0);
-    Promise.all([
-      checkMimeType(files[0]),
-      checkFileSize({ file: files[0], types: ['image/png', 'image/jpeg', 'image/gif'] })
-    ])
-      .then(() => {
-        setFile(files[0]);
-      })
-      .catch((e) => {
-        alert(e);
-      });
-  }, []);
+  const inputChangeHandler = useCallback(
+    (e) => {
+      const files = e.target.files;
+      console.log('inputChange()');
+      console.log(files[0]);
+      setLoaded(0);
+
+      Promise.all([
+        checkMimeType({ file: files[0] }),
+        checkFileSize({ file: files[0], types: ['image/png', 'image/jpeg', 'image/gif'] }),
+      ])
+        .then(async () => {
+          await setFile(files[0]);
+          //맘에 들지 않는다
+          fileInput.current.files = files;
+          console.log(fileInput);
+        })
+        .catch((e) => {
+          alert(e);
+        });
+    },
+    [fileInput]
+  );
 
   const formSubmitHandler = useCallback(
     (e) => {
       console.log('formSubmit()');
       e.preventDefault();
       fileUpload({
-        file,
+        filez,
         url,
         onProgress: (p) => {
           setLoaded(p);
@@ -97,7 +103,7 @@ const FileUploader = ({ text, url, onProgress, onSuccess }) => {
         },
       });
     },
-    [file, onProgress, onSuccess, url]
+    [filez, onProgress, onSuccess, url]
   );
 
   const Form = styled.form`
@@ -113,8 +119,8 @@ const FileUploader = ({ text, url, onProgress, onSuccess }) => {
   return (
     <Form onSubmit={formSubmitHandler} className="file-uploader">
       <label htmlFor="uploader">
-        {file === null ? text : loaded}
-        <input id="uploader" type="file" onChange={inputChangeHandler} />
+        {filez === null ? text : loaded}
+        <input type="file" id="uploader" ref={fileInput} onChange={inputChangeHandler} />
       </label>
       <Button type="submit">Upload</Button>
     </Form>
